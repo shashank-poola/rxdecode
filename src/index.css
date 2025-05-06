@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply font-space text-gray-800 bg-gray-50;
+    line-height: 150%;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bricolage font-medium text-gray-900;
+    line-height: 120%;
+  }
+  
+  h1 {
+    @apply text-4xl md:text-5xl;
+  }
+  
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+  
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+  
+  h4 {
+    @apply text-xl md:text-2xl;
+  }
+  
+  p {
+    @apply mb-4;
+  }
+  
+  input, textarea, select {
+    @apply rounded-lg border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary-400 text-white hover:bg-secondary-500 focus-visible:ring-secondary-300;
+  }
+  
+  .btn-outline {
+    @apply border border-gray-300 bg-transparent hover:bg-gray-100 focus-visible:ring-gray-500;
+  }
+  
+  .card {
+    @apply rounded-xl bg-white p-6 shadow-md;
+  }
+  
+  .fade-in {
+    @apply transition-opacity duration-300 ease-in-out;
+  }
+}
