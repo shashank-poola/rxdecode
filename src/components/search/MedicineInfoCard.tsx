@@ -20,25 +20,25 @@ const MedicineInfoCard = ({ medicineInfo }: MedicineInfoCardProps) => {
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Pill className="h-5 w-5 text-rxdecode-green" />
-          <span>{medicineInfo.name}</span>
+          <span className="text-xl font-bold">{medicineInfo.name}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <h4 className="font-semibold text-rxdecode-purple mb-2">Usage</h4>
-          <p className="text-gray-700">{medicineInfo.usage}</p>
+      <CardContent className="space-y-6">
+        <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-rxdecode-purple">
+          <h4 className="font-bold text-rxdecode-purple mb-2 text-lg">Usage</h4>
+          <p className="text-gray-800 font-medium leading-relaxed">{medicineInfo.usage}</p>
         </div>
-        <div>
-          <h4 className="font-semibold text-rxdecode-coral mb-2">Dosage</h4>
-          <p className="text-gray-700">{medicineInfo.dosage}</p>
+        <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-rxdecode-coral">
+          <h4 className="font-bold text-rxdecode-coral mb-2 text-lg">Dosage</h4>
+          <p className="text-gray-800 font-medium leading-relaxed">{medicineInfo.dosage}</p>
         </div>
-        <div>
-          <h4 className="font-semibold text-rxdecode-yellow mb-2">Side Effects</h4>
-          <p className="text-gray-700">{medicineInfo.sideEffects}</p>
+        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-rxdecode-yellow">
+          <h4 className="font-bold text-rxdecode-yellow mb-2 text-lg">Side Effects</h4>
+          <p className="text-gray-800 font-medium leading-relaxed">{medicineInfo.sideEffects}</p>
         </div>
-        <div>
-          <h4 className="font-semibold text-rxdecode-blue mb-2">Precautions</h4>
-          <p className="text-gray-700">{medicineInfo.precautions}</p>
+        <div className="bg-green-50 p-4 rounded-lg border-l-4 border-rxdecode-blue">
+          <h4 className="font-bold text-rxdecode-blue mb-2 text-lg">Precautions</h4>
+          <p className="text-gray-800 font-medium leading-relaxed">{medicineInfo.precautions}</p>
         </div>
       </CardContent>
     </Card>

@@ -16,12 +16,21 @@ export const useSearch = () => {
   const [medicineInfo, setMedicineInfo] = useState<MedicineInfo | null>(null);
   const { toast } = useToast();
 
+  const cleanText = (text: string): string => {
+    // Remove asterisks and clean up text
+    return text
+      .replace(/\*\*/g, '') // Remove bold markdown
+      .replace(/\*/g, '') // Remove any remaining asterisks
+      .replace(/#+\s*/g, '') // Remove markdown headers
+      .trim();
+  };
+
   const searchMedicine = async (medicineName: string): Promise<MedicineInfo> => {
     console.log(`Searching for: ${medicineName}`);
     
     try {
-      // Use Gemini API for medicine search
-      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDMBRYoVda27hquQS-UTb5WuQgEwSz0_rs';
+      // Use Gemini 2.0 Flash API for medicine search
+      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyABoWpR4-zZ4OY6hcCpGKZtwHLmchygxAY';
       const geminiResponse = await fetch(geminiUrl, {
         method: 'POST',
         headers: {
@@ -37,7 +46,7 @@ Dosage: [Typical dosage information for adults - include frequency and amount]
 Side Effects: [List common side effects]
 Precautions: [Important warnings and precautions]
 
-Please provide accurate, concise medical information. If the medicine is not found or you're unsure, clearly state that and provide general guidance about consulting healthcare providers.`
+Please provide accurate, concise medical information without using asterisks or bold formatting. If the medicine is not found or you're unsure, clearly state that and provide general guidance about consulting healthcare providers.`
             }]
           }]
         })
@@ -47,20 +56,20 @@ Please provide accurate, concise medical information. If the medicine is not fou
         const geminiResult = await geminiResponse.json();
         const text = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
-        // Parse the Gemini response
+        // Parse the Gemini response and clean text
         const lines = text.split('\n').filter(line => line.trim());
         const info: Partial<MedicineInfo> = { name: medicineName };
         
         lines.forEach(line => {
-          const cleanLine = line.trim();
+          const cleanLine = cleanText(line.trim());
           if (cleanLine.startsWith('Usage:')) {
-            info.usage = cleanLine.replace('Usage:', '').trim();
+            info.usage = cleanText(cleanLine.replace('Usage:', '').trim());
           } else if (cleanLine.startsWith('Dosage:')) {
-            info.dosage = cleanLine.replace('Dosage:', '').trim();
+            info.dosage = cleanText(cleanLine.replace('Dosage:', '').trim());
           } else if (cleanLine.startsWith('Side Effects:')) {
-            info.sideEffects = cleanLine.replace('Side Effects:', '').trim();
+            info.sideEffects = cleanText(cleanLine.replace('Side Effects:', '').trim());
           } else if (cleanLine.startsWith('Precautions:')) {
-            info.precautions = cleanLine.replace('Precautions:', '').trim();
+            info.precautions = cleanText(cleanLine.replace('Precautions:', '').trim());
           }
         });
 
