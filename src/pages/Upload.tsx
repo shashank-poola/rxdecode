@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Tesseract from 'tesseract.js';
+import MedicineInfoCard from '@/components/search/MedicineInfoCard';
 
 interface MedicineInfo {
   name: string;
@@ -91,42 +92,21 @@ const Upload = () => {
     return filteredNames.slice(0, 5); // Max 5 medicines
   };
 
+  const cleanText = (text: string): string => {
+    // Remove asterisks and clean up text
+    return text
+      .replace(/\*\*/g, '') // Remove bold markdown
+      .replace(/\*/g, '') // Remove any remaining asterisks
+      .replace(/#+\s*/g, '') // Remove markdown headers
+      .trim();
+  };
+
   const fetchMedicineInfo = async (medicineName: string): Promise<MedicineInfo> => {
     console.log(`Fetching info for: ${medicineName}`);
     
     try {
-      // Use RapidAPI for prescription medicines
-      const rapidApiUrl = `https://myhealthbox.p.rapidapi.com/search/fulltext?q=${encodeURIComponent(medicineName)}&c=us&l=en&f=name&limit=1&from=0`;
-      const rapidApiOptions = {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-key': 'd25a28fce6msh5f140cc61d7557fp1e5287jsnfd21dc470137',
-          'x-rapidapi-host': 'myhealthbox.p.rapidapi.com'
-        }
-      };
-
-      const rapidApiResponse = await fetch(rapidApiUrl, rapidApiOptions);
-      
-      if (rapidApiResponse.ok) {
-        const rapidApiResult = await rapidApiResponse.json();
-        console.log('RapidAPI result:', rapidApiResult);
-        
-        if (rapidApiResult && rapidApiResult.length > 0) {
-          const medicine = rapidApiResult[0];
-          return {
-            name: medicine.name || medicineName,
-            usage: medicine.indication || 'Information not available from RapidAPI',
-            dosage: medicine.dosage || 'Consult your doctor for proper dosage',
-            sideEffects: medicine.side_effects || 'Consult your doctor for side effects',
-            precautions: medicine.precautions || 'Take as prescribed by your doctor'
-          };
-        }
-      } else {
-        console.log('RapidAPI error:', rapidApiResponse.status, await rapidApiResponse.text());
-      }
-
-      // Fallback to Gemini API if RapidAPI fails
-      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDMBRYoVda27hquQS-UTb5WuQgEwSz0_rs';
+      // Use Gemini 2.0 Flash API for medicine search
+      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyABoWpR4-zZ4OY6hcCpGKZtwHLmchygxAY';
       const geminiResponse = await fetch(geminiUrl, {
         method: 'POST',
         headers: {
@@ -135,14 +115,14 @@ const Upload = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Provide medical information for "${medicineName}" in this format:
-              
-Usage: [What it's used for]
-Dosage: [Typical dosage]
-Side Effects: [Common side effects]
-Precautions: [Important precautions]
+              text: `Provide detailed medical information for the medicine "${medicineName}" in the following exact format:
 
-If this is not a valid medicine name, please indicate that and provide general guidance.`
+Usage: [What this medicine is used for - be specific about conditions it treats]
+Dosage: [Typical dosage information for adults - include frequency and amount]
+Side Effects: [List common side effects]
+Precautions: [Important warnings and precautions]
+
+Please provide accurate, concise medical information without using asterisks or bold formatting. If the medicine is not found or you're unsure, clearly state that and provide general guidance about consulting healthcare providers.`
             }]
           }]
         })
@@ -152,20 +132,20 @@ If this is not a valid medicine name, please indicate that and provide general g
         const geminiResult = await geminiResponse.json();
         const text = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
-        // Parse the Gemini response
+        // Parse the Gemini response and clean text
         const lines = text.split('\n').filter(line => line.trim());
         const info: Partial<MedicineInfo> = { name: medicineName };
         
         lines.forEach(line => {
-          const cleanLine = line.trim();
+          const cleanLine = cleanText(line.trim());
           if (cleanLine.startsWith('Usage:')) {
-            info.usage = cleanLine.replace('Usage:', '').trim();
+            info.usage = cleanText(cleanLine.replace('Usage:', '').trim());
           } else if (cleanLine.startsWith('Dosage:')) {
-            info.dosage = cleanLine.replace('Dosage:', '').trim();
+            info.dosage = cleanText(cleanLine.replace('Dosage:', '').trim());
           } else if (cleanLine.startsWith('Side Effects:')) {
-            info.sideEffects = cleanLine.replace('Side Effects:', '').trim();
+            info.sideEffects = cleanText(cleanLine.replace('Side Effects:', '').trim());
           } else if (cleanLine.startsWith('Precautions:')) {
-            info.precautions = cleanLine.replace('Precautions:', '').trim();
+            info.precautions = cleanText(cleanLine.replace('Precautions:', '').trim());
           }
         });
 
@@ -178,10 +158,10 @@ If this is not a valid medicine name, please indicate that and provide general g
         };
       }
 
-      // Final fallback response
+      // Fallback response if Gemini fails
       return {
         name: medicineName,
-        usage: 'RapidAPI subscription needed for detailed information',
+        usage: 'Unable to fetch medicine information from Gemini',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
         precautions: 'Take only as prescribed by your healthcare provider'
@@ -235,8 +215,8 @@ If this is not a valid medicine name, please indicate that and provide general g
         return;
       }
 
-      // Step 3: Fetch Medicine Information using RapidAPI
-      setProcessingStep('Fetching medicine information from RapidAPI...');
+      // Step 3: Fetch Medicine Information using Gemini API
+      setProcessingStep('Fetching medicine information from Gemini AI...');
       const medicineInfoPromises = medicineNames.map(name => fetchMedicineInfo(name));
       const results = await Promise.all(medicineInfoPromises);
       
@@ -265,7 +245,7 @@ If this is not a valid medicine name, please indicate that and provide general g
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold font-bricolage mb-4 bg-gradient-to-r from-rxdecode-purple to-rxdecode-coral bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold font-bricolage mb-4 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
             Upload Prescription
           </h1>
           <p className="text-lg text-gray-600">
@@ -283,7 +263,7 @@ If this is not a valid medicine name, please indicate that and provide general g
           </CardHeader>
           <CardContent>
             <div
-              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-rxdecode-purple transition-colors cursor-pointer"
+              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-600 transition-colors cursor-pointer"
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
@@ -310,7 +290,7 @@ If this is not a valid medicine name, please indicate that and provide general g
                         processImage();
                       }}
                       disabled={isProcessing}
-                      className="bg-gradient-to-r from-rxdecode-purple to-rxdecode-coral hover:from-rxdecode-purple/90 hover:to-rxdecode-coral/90"
+                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
                     >
                       {isProcessing ? (
                         <>
@@ -377,38 +357,17 @@ If this is not a valid medicine name, please indicate that and provide general g
           </Card>
         )}
 
+        {/* Medicine Information */}
         {medicineInfo.length > 0 && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold font-bricolage text-center">
+            <h2 className="text-2xl font-bold font-bricolage text-center text-blue-800">
               Medicine Information
             </h2>
             {medicineInfo.map((medicine, index) => (
-              <Card key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <CheckCircle2 className="h-5 w-5 text-rxdecode-green" />
-                    <span>{medicine.name}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-rxdecode-purple mb-2">Usage</h4>
-                    <p className="text-gray-700">{medicine.usage}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-rxdecode-coral mb-2">Dosage</h4>
-                    <p className="text-gray-700">{medicine.dosage}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-rxdecode-yellow mb-2">Side Effects</h4>
-                    <p className="text-gray-700">{medicine.sideEffects}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-rxdecode-blue mb-2">Precautions</h4>
-                    <p className="text-gray-700">{medicine.precautions}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <MedicineInfoCard 
+                key={index} 
+                medicineInfo={medicine} 
+              />
             ))}
             
             <Card className="bg-yellow-50 border-yellow-200">

@@ -30,7 +30,7 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#8b5cf6',
+					DEFAULT: '#0000FF',
 					foreground: '#ffffff'
 				},
 				secondary: {
@@ -67,12 +67,12 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom brand colors
+				// Custom brand colors - updated to use blue theme
 				'rxdecode-green': '#10b981',
-				'rxdecode-purple': '#8b5cf6',
+				'rxdecode-purple': '#0000FF',
 				'rxdecode-coral': '#f472b6',
 				'rxdecode-yellow': '#fbbf24',
-				'rxdecode-blue': '#60a5fa',
+				'rxdecode-blue': '#0000FF',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
