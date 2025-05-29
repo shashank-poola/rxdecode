@@ -24,36 +24,8 @@ const Search = () => {
     console.log(`Searching for: ${medicineName}`);
     
     try {
-      // Try RapidAPI first
-      const rapidApiUrl = `https://myhealthbox.p.rapidapi.com/search/fulltext?q=${encodeURIComponent(medicineName)}&c=us&l=en&f=name&limit=1&from=0`;
-      const rapidApiOptions = {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-key': 'd25a28fce6msh5f140cc61d7557fp1e5287jsnfd21dc470137',
-          'x-rapidapi-host': 'myhealthbox.p.rapidapi.com'
-        }
-      };
-
-      const rapidApiResponse = await fetch(rapidApiUrl, rapidApiOptions);
-      
-      if (rapidApiResponse.ok) {
-        const rapidApiResult = await rapidApiResponse.json();
-        console.log('RapidAPI result:', rapidApiResult);
-        
-        if (rapidApiResult && rapidApiResult.length > 0) {
-          const medicine = rapidApiResult[0];
-          return {
-            name: medicine.name || medicineName,
-            usage: medicine.indication || 'Information not available',
-            dosage: medicine.dosage || 'Consult your doctor for proper dosage',
-            sideEffects: medicine.side_effects || 'Consult your doctor for side effects',
-            precautions: medicine.precautions || 'Take as prescribed by your doctor'
-          };
-        }
-      }
-
-      // Fallback to Gemini API
-      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent?key=AIzaSyDMBRYoVda27hquQS-UTb5WuQgEwSz0_rs';
+      // Use Gemini API for medicine search
+      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDMBRYoVda27hquQS-UTb5WuQgEwSz0_rs';
       const geminiResponse = await fetch(geminiUrl, {
         method: 'POST',
         headers: {
@@ -62,15 +34,14 @@ const Search = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `You are a medical information assistant. Provide the following details for the medicine "${medicineName}" in a structured format:
-              
-              Name: ${medicineName}
-              Use: [What it's used for]
-              Dosage: [Typical dosage information]
-              Side Effects: [Common side effects]
-              Precautions: [Important precautions]
-              
-              Keep the information clear, concise, and avoid medical jargon. If the medicine is not found, provide general guidance.`
+              text: `Provide detailed medical information for the medicine "${medicineName}" in the following exact format:
+
+Usage: [What this medicine is used for - be specific about conditions it treats]
+Dosage: [Typical dosage information for adults - include frequency and amount]
+Side Effects: [List common side effects]
+Precautions: [Important warnings and precautions]
+
+Please provide accurate, concise medical information. If the medicine is not found or you're unsure, clearly state that and provide general guidance about consulting healthcare providers.`
             }]
           }]
         })
@@ -85,14 +56,15 @@ const Search = () => {
         const info: Partial<MedicineInfo> = { name: medicineName };
         
         lines.forEach(line => {
-          if (line.includes('Use:') || line.includes('Usage:')) {
-            info.usage = line.split(':')[1]?.trim() || '';
-          } else if (line.includes('Dosage:')) {
-            info.dosage = line.split(':')[1]?.trim() || '';
-          } else if (line.includes('Side Effects:')) {
-            info.sideEffects = line.split(':')[1]?.trim() || '';
-          } else if (line.includes('Precautions:')) {
-            info.precautions = line.split(':')[1]?.trim() || '';
+          const cleanLine = line.trim();
+          if (cleanLine.startsWith('Usage:')) {
+            info.usage = cleanLine.replace('Usage:', '').trim();
+          } else if (cleanLine.startsWith('Dosage:')) {
+            info.dosage = cleanLine.replace('Dosage:', '').trim();
+          } else if (cleanLine.startsWith('Side Effects:')) {
+            info.sideEffects = cleanLine.replace('Side Effects:', '').trim();
+          } else if (cleanLine.startsWith('Precautions:')) {
+            info.precautions = cleanLine.replace('Precautions:', '').trim();
           }
         });
 
@@ -105,10 +77,10 @@ const Search = () => {
         };
       }
 
-      // Fallback response
+      // Fallback response if Gemini fails
       return {
         name: medicineName,
-        usage: 'Medicine information not available in our database',
+        usage: 'Unable to fetch medicine information from Gemini',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
         precautions: 'Take only as prescribed by your healthcare provider'

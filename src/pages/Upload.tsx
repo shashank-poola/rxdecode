@@ -51,31 +51,51 @@ const Upload = () => {
   };
 
   const extractMedicineNames = (text: string): string[] => {
-    // Simple medicine name extraction logic
-    const words = text.split(/\s+/);
-    const medicineKeywords = ['tablet', 'capsule', 'syrup', 'injection', 'drops', 'cream', 'ointment'];
-    const potentialMedicines: string[] = [];
+    // Improved medicine name extraction logic
+    const lines = text.split('\n');
+    const medicineNames: string[] = [];
     
-    words.forEach((word, index) => {
-      if (medicineKeywords.some(keyword => word.toLowerCase().includes(keyword))) {
-        if (index > 0) {
-          potentialMedicines.push(words[index - 1]);
+    // Look for medicine patterns in prescription
+    lines.forEach(line => {
+      const trimmedLine = line.trim().toUpperCase();
+      
+      // Look for lines that start with numbers (medicine list)
+      if (/^\d+\)/.test(trimmedLine)) {
+        // Extract medicine name after the number
+        const parts = trimmedLine.split(')');
+        if (parts.length > 1) {
+          const medicinePart = parts[1].trim();
+          // Extract the first word which is usually the medicine name
+          const medicineMatch = medicinePart.match(/^(TAB\.|CAP\.|SYR\.|INJ\.)\s*([A-Z]+)/);
+          if (medicineMatch && medicineMatch[2]) {
+            medicineNames.push(medicineMatch[2]);
+          }
         }
       }
-      // Also look for common medicine patterns (capitalized words)
-      if (word.length > 3 && /^[A-Z]/.test(word)) {
-        potentialMedicines.push(word);
+      
+      // Look for common medicine prefixes
+      if (trimmedLine.includes('TAB.') || trimmedLine.includes('CAP.') || trimmedLine.includes('SYR.')) {
+        const medicineMatch = trimmedLine.match(/(TAB\.|CAP\.|SYR\.)\s*([A-Z][A-Z0-9]+)/);
+        if (medicineMatch && medicineMatch[2]) {
+          medicineNames.push(medicineMatch[2]);
+        }
       }
     });
     
-    return [...new Set(potentialMedicines)].slice(0, 5); // Return unique medicines, max 5
+    // Remove duplicates and filter out obvious non-medicine words
+    const filteredNames = [...new Set(medicineNames)].filter(name => 
+      name.length > 2 && 
+      !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML', 'MORNING', 'NIGHT', 'FOOD', 'DAYS'].includes(name)
+    );
+    
+    return filteredNames.slice(0, 5); // Max 5 medicines
   };
 
   const fetchMedicineInfo = async (medicineName: string): Promise<MedicineInfo> => {
     console.log(`Fetching info for: ${medicineName}`);
     
     try {
-      // Try RapidAPI first
+      // Use RapidAPI for prescription medicines
       const rapidApiUrl = `https://myhealthbox.p.rapidapi.com/search/fulltext?q=${encodeURIComponent(medicineName)}&c=us&l=en&f=name&limit=1&from=0`;
       const rapidApiOptions = {
         method: 'GET',
@@ -95,16 +115,18 @@ const Upload = () => {
           const medicine = rapidApiResult[0];
           return {
             name: medicine.name || medicineName,
-            usage: medicine.indication || 'Information not available',
+            usage: medicine.indication || 'Information not available from RapidAPI',
             dosage: medicine.dosage || 'Consult your doctor for proper dosage',
             sideEffects: medicine.side_effects || 'Consult your doctor for side effects',
             precautions: medicine.precautions || 'Take as prescribed by your doctor'
           };
         }
+      } else {
+        console.log('RapidAPI error:', rapidApiResponse.status, await rapidApiResponse.text());
       }
 
-      // Fallback to Gemini API
-      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent?key=AIzaSyDMBRYoVda27hquQS-UTb5WuQgEwSz0_rs';
+      // Fallback to Gemini API if RapidAPI fails
+      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDMBRYoVda27hquQS-UTb5WuQgEwSz0_rs';
       const geminiResponse = await fetch(geminiUrl, {
         method: 'POST',
         headers: {
@@ -113,14 +135,14 @@ const Upload = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `You are a medical information assistant. Provide the following details for the medicine "${medicineName}" in a structured format:
-              - Name: [Medicine name]
-              - Use: [What it's used for]
-              - Dosage: [Typical dosage information]
-              - Side Effects: [Common side effects]
-              - Precautions: [Important precautions]
+              text: `Provide medical information for "${medicineName}" in this format:
               
-              Keep the information clear, concise, and avoid medical jargon. If the medicine is not found, provide general guidance.`
+Usage: [What it's used for]
+Dosage: [Typical dosage]
+Side Effects: [Common side effects]
+Precautions: [Important precautions]
+
+If this is not a valid medicine name, please indicate that and provide general guidance.`
             }]
           }]
         })
@@ -135,14 +157,15 @@ const Upload = () => {
         const info: Partial<MedicineInfo> = { name: medicineName };
         
         lines.forEach(line => {
-          if (line.includes('Use:') || line.includes('Usage:')) {
-            info.usage = line.split(':')[1]?.trim() || '';
-          } else if (line.includes('Dosage:')) {
-            info.dosage = line.split(':')[1]?.trim() || '';
-          } else if (line.includes('Side Effects:')) {
-            info.sideEffects = line.split(':')[1]?.trim() || '';
-          } else if (line.includes('Precautions:')) {
-            info.precautions = line.split(':')[1]?.trim() || '';
+          const cleanLine = line.trim();
+          if (cleanLine.startsWith('Usage:')) {
+            info.usage = cleanLine.replace('Usage:', '').trim();
+          } else if (cleanLine.startsWith('Dosage:')) {
+            info.dosage = cleanLine.replace('Dosage:', '').trim();
+          } else if (cleanLine.startsWith('Side Effects:')) {
+            info.sideEffects = cleanLine.replace('Side Effects:', '').trim();
+          } else if (cleanLine.startsWith('Precautions:')) {
+            info.precautions = cleanLine.replace('Precautions:', '').trim();
           }
         });
 
@@ -155,10 +178,10 @@ const Upload = () => {
         };
       }
 
-      // Fallback response
+      // Final fallback response
       return {
         name: medicineName,
-        usage: 'Medicine information not available in our database',
+        usage: 'RapidAPI subscription needed for detailed information',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
         precautions: 'Take only as prescribed by your healthcare provider'
@@ -212,8 +235,8 @@ const Upload = () => {
         return;
       }
 
-      // Step 3: Fetch Medicine Information
-      setProcessingStep('Fetching medicine information...');
+      // Step 3: Fetch Medicine Information using RapidAPI
+      setProcessingStep('Fetching medicine information from RapidAPI...');
       const medicineInfoPromises = medicineNames.map(name => fetchMedicineInfo(name));
       const results = await Promise.all(medicineInfoPromises);
       
@@ -354,7 +377,6 @@ const Upload = () => {
           </Card>
         )}
 
-        {/* Medicine Information */}
         {medicineInfo.length > 0 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold font-bricolage text-center">
