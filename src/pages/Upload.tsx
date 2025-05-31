@@ -247,7 +247,7 @@ Please provide accurate, concise medical information without using asterisks or 
 
     try {
       // Step 1: OCR Text Extraction using Google Cloud Vision API
-      setProcessingStep('Extracting text from prescription using Google Vision API...');
+      setProcessingStep('Extracting text from prescription...');
       const text = await extractTextWithVisionAPI(selectedFile);
       
       setExtractedText(text);
