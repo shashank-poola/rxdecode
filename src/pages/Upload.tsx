@@ -4,7 +4,6 @@ import { Upload as UploadIcon, Camera, FileText, Loader2, CheckCircle2, AlertCir
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import Tesseract from 'tesseract.js';
 import MedicineInfoCard from '@/components/search/MedicineInfoCard';
 
 interface MedicineInfo {
@@ -49,6 +48,67 @@ const Upload = () => {
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleFileSelect(file);
+  };
+
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Remove the data:image/jpeg;base64, prefix
+        const base64Data = base64String.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const extractTextWithVisionAPI = async (file: File): Promise<string> => {
+    try {
+      const base64Image = await convertFileToBase64(file);
+      
+      const visionUrl = `https://vision.googleapis.com/v1/images:annotate?key=AIzaSyAaOzhceAvQA8bbq5BXTU9guRDMsORIfiw`;
+      
+      const requestBody = {
+        requests: [
+          {
+            image: {
+              content: base64Image
+            },
+            features: [
+              {
+                type: 'TEXT_DETECTION',
+                maxResults: 1
+              }
+            ]
+          }
+        ]
+      };
+
+      const response = await fetch(visionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Vision API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.responses && result.responses[0] && result.responses[0].textAnnotations) {
+        return result.responses[0].textAnnotations[0].description || '';
+      }
+      
+      return '';
+    } catch (error) {
+      console.error('Error with Vision API:', error);
+      throw error;
+    }
   };
 
   const extractMedicineNames = (text: string): string[] => {
@@ -186,17 +246,10 @@ Please provide accurate, concise medical information without using asterisks or 
     setProcessingStep('Analyzing image...');
 
     try {
-      // Step 1: OCR Text Extraction
-      setProcessingStep('Extracting text from prescription...');
-      const result = await Tesseract.recognize(selectedFile, 'eng', {
-        logger: (m) => {
-          if (m.status === 'recognizing text') {
-            setProcessingStep(`Processing... ${Math.round(m.progress * 100)}%`);
-          }
-        }
-      });
-
-      const text = result.data.text;
+      // Step 1: OCR Text Extraction using Google Cloud Vision API
+      setProcessingStep('Extracting text from prescription using Google Vision API...');
+      const text = await extractTextWithVisionAPI(selectedFile);
+      
       setExtractedText(text);
       console.log('Extracted text:', text);
 
