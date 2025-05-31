@@ -8,7 +8,6 @@ interface MedicineInfo {
   dosage: string;
   sideEffects: string;
   precautions: string;
-  alternatives?: string;
 }
 
 export const useUploadProcessor = () => {
@@ -95,108 +94,37 @@ export const useUploadProcessor = () => {
   };
 
   const extractMedicineNames = (text: string): string[] => {
-    console.log('Extracting medicines from text:', text);
-    
     const lines = text.split('\n');
     const medicineNames: string[] = [];
     
-    // Common medicine prefixes and patterns
-    const medicinePrefixes = ['TAB', 'CAP', 'SYR', 'INJ', 'TABLET', 'CAPSULE', 'SYRUP', 'INJECTION'];
-    const commonWords = ['MG', 'ML', 'MORNING', 'NIGHT', 'FOOD', 'DAYS', 'AFTER', 'BEFORE', 'TIMES', 'DAILY', 'TWICE', 'THRICE', 'BD', 'TDS', 'QDS', 'OD', 'STAT'];
-    
     lines.forEach(line => {
-      const trimmedLine = line.trim();
-      if (!trimmedLine || trimmedLine.length < 3) return;
+      const trimmedLine = line.trim().toUpperCase();
       
-      // Pattern 1: Lines starting with numbers (prescription items)
-      const numberedPattern = /^\d+[\.\)]\s*(.+)/i;
-      const numberedMatch = trimmedLine.match(numberedPattern);
-      if (numberedMatch) {
-        const content = numberedMatch[1].trim();
-        const extractedMedicine = extractMedicineFromContent(content, medicinePrefixes, commonWords);
-        if (extractedMedicine) {
-          medicineNames.push(extractedMedicine);
+      if (/^\d+\)/.test(trimmedLine)) {
+        const parts = trimmedLine.split(')');
+        if (parts.length > 1) {
+          const medicinePart = parts[1].trim();
+          const medicineMatch = medicinePart.match(/^(TAB\.|CAP\.|SYR\.|INJ\.)\s*([A-Z]+)/);
+          if (medicineMatch && medicineMatch[2]) {
+            medicineNames.push(medicineMatch[2]);
+          }
         }
-        return;
       }
       
-      // Pattern 2: Lines containing medicine prefixes
-      const hasMedicinePrefix = medicinePrefixes.some(prefix => 
-        trimmedLine.toUpperCase().includes(prefix + '.') || 
-        trimmedLine.toUpperCase().includes(prefix + ' ')
-      );
-      
-      if (hasMedicinePrefix) {
-        const extractedMedicine = extractMedicineFromContent(trimmedLine, medicinePrefixes, commonWords);
-        if (extractedMedicine) {
-          medicineNames.push(extractedMedicine);
-        }
-        return;
-      }
-      
-      // Pattern 3: Lines that look like medicine names (capitalized words)
-      const words = trimmedLine.split(/\s+/);
-      const potentialMedicine = words.find(word => {
-        const cleanWord = word.replace(/[^\w]/g, '').toUpperCase();
-        return cleanWord.length >= 4 && 
-               cleanWord.length <= 20 && 
-               /^[A-Z]/.test(cleanWord) && 
-               !commonWords.includes(cleanWord) &&
-               !medicinePrefixes.includes(cleanWord);
-      });
-      
-      if (potentialMedicine) {
-        const cleanMedicine = potentialMedicine.replace(/[^\w]/g, '').toUpperCase();
-        if (cleanMedicine.length >= 4) {
-          medicineNames.push(cleanMedicine);
+      if (trimmedLine.includes('TAB.') || trimmedLine.includes('CAP.') || trimmedLine.includes('SYR.')) {
+        const medicineMatch = trimmedLine.match(/(TAB\.|CAP\.|SYR\.)\s*([A-Z][A-Z0-9]+)/);
+        if (medicineMatch && medicineMatch[2]) {
+          medicineNames.push(medicineMatch[2]);
         }
       }
     });
     
-    // Remove duplicates and filter out invalid names
-    const uniqueMedicines = [...new Set(medicineNames)]
-      .filter(name => {
-        const upperName = name.toUpperCase();
-        return name.length >= 3 && 
-               name.length <= 25 &&
-               !commonWords.includes(upperName) &&
-               !medicinePrefixes.includes(upperName) &&
-               !/^\d+$/.test(name) && // Not just numbers
-               /[A-Za-z]/.test(name); // Contains at least one letter
-      })
-      .slice(0, 8); // Limit to 8 medicines
+    const filteredNames = [...new Set(medicineNames)].filter(name => 
+      name.length > 2 && 
+      !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML', 'MORNING', 'NIGHT', 'FOOD', 'DAYS'].includes(name)
+    );
     
-    console.log('Extracted medicine names:', uniqueMedicines);
-    return uniqueMedicines;
-  };
-
-  const extractMedicineFromContent = (content: string, prefixes: string[], commonWords: string[]): string | null => {
-    // Remove common prefixes and dosage information
-    let cleanContent = content;
-    
-    // Remove medicine type prefixes
-    prefixes.forEach(prefix => {
-      const prefixPattern = new RegExp(`\\b${prefix}\\.?\\s*`, 'gi');
-      cleanContent = cleanContent.replace(prefixPattern, '');
-    });
-    
-    // Extract the first meaningful word that looks like a medicine name
-    const words = cleanContent.split(/[\s\-\.\,\(\)]+/);
-    
-    for (const word of words) {
-      const cleanWord = word.replace(/[^\w]/g, '').toUpperCase();
-      
-      if (cleanWord.length >= 4 && 
-          cleanWord.length <= 20 && 
-          !commonWords.includes(cleanWord) &&
-          !prefixes.includes(cleanWord) &&
-          /^[A-Z]/.test(cleanWord) &&
-          !/^\d+$/.test(cleanWord)) {
-        return cleanWord;
-      }
-    }
-    
-    return null;
+    return filteredNames.slice(0, 5);
   };
 
   const cleanText = (text: string): string => {
@@ -226,7 +154,6 @@ Usage: [What this medicine is used for - be specific about conditions it treats]
 Dosage: [Typical dosage information for adults - include frequency and amount]
 Side Effects: [List common side effects]
 Precautions: [Important warnings and precautions]
-Alternatives: [List 2-3 alternative medicines with similar effects]
 
 Please provide accurate, concise medical information without using asterisks or bold formatting. If the medicine is not found or you're unsure, clearly state that and provide general guidance about consulting healthcare providers.`
             }]
@@ -251,8 +178,6 @@ Please provide accurate, concise medical information without using asterisks or 
             info.sideEffects = cleanText(cleanLine.replace('Side Effects:', '').trim());
           } else if (cleanLine.startsWith('Precautions:')) {
             info.precautions = cleanText(cleanLine.replace('Precautions:', '').trim());
-          } else if (cleanLine.startsWith('Alternatives:')) {
-            info.alternatives = cleanText(cleanLine.replace('Alternatives:', '').trim());
           }
         });
 
@@ -261,8 +186,7 @@ Please provide accurate, concise medical information without using asterisks or 
           usage: info.usage || 'Information not available',
           dosage: info.dosage || 'Consult your doctor for proper dosage',
           sideEffects: info.sideEffects || 'Consult your doctor for side effects',
-          precautions: info.precautions || 'Take as prescribed by your doctor',
-          alternatives: info.alternatives || 'Consult your doctor for alternative medicines'
+          precautions: info.precautions || 'Take as prescribed by your doctor'
         };
       }
 
@@ -271,8 +195,7 @@ Please provide accurate, concise medical information without using asterisks or 
         usage: 'Unable to fetch medicine information from Gemini',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
-        precautions: 'Take only as prescribed by your healthcare provider',
-        alternatives: 'Consult your doctor for alternative medicines'
+        precautions: 'Take only as prescribed by your healthcare provider'
       };
 
     } catch (error) {
@@ -282,8 +205,7 @@ Please provide accurate, concise medical information without using asterisks or 
         usage: 'Unable to fetch medicine information',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
-        precautions: 'Take only as prescribed by your healthcare provider',
-        alternatives: 'Consult your doctor for alternative medicines'
+        precautions: 'Take only as prescribed by your healthcare provider'
       };
     }
   };
