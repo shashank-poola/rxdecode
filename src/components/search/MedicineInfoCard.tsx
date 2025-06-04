@@ -8,6 +8,7 @@ interface MedicineInfo {
   dosage: string;
   sideEffects: string;
   precautions: string;
+  alternatives: string;
 }
 
 interface MedicineInfoCardProps {
@@ -39,6 +40,10 @@ const MedicineInfoCard = ({ medicineInfo }: MedicineInfoCardProps) => {
         <div className="bg-green-50 p-4 rounded-lg border-l-4 border-rxdecode-blue">
           <h4 className="font-bold text-rxdecode-blue mb-2 text-lg">Precautions</h4>
           <p className="text-gray-800 font-medium leading-relaxed">{medicineInfo.precautions}</p>
+        </div>
+        <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-rxdecode-green">
+          <h4 className="font-bold text-rxdecode-green mb-2 text-lg">Alternative Medicines</h4>
+          <p className="text-gray-800 font-medium leading-relaxed">{medicineInfo.alternatives}</p>
         </div>
       </CardContent>
     </Card>

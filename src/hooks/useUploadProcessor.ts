@@ -8,6 +8,7 @@ interface MedicineInfo {
   dosage: string;
   sideEffects: string;
   precautions: string;
+  alternatives: string;
 }
 
 export const useUploadProcessor = () => {
@@ -97,34 +98,70 @@ export const useUploadProcessor = () => {
     const lines = text.split('\n');
     const medicineNames: string[] = [];
     
-    lines.forEach(line => {
-      const trimmedLine = line.trim().toUpperCase();
+    console.log('Analyzing text for medicine names:', text);
+    
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      console.log(`Line ${index}: "${trimmedLine}"`);
       
-      if (/^\d+\)/.test(trimmedLine)) {
-        const parts = trimmedLine.split(')');
-        if (parts.length > 1) {
-          const medicinePart = parts[1].trim();
-          const medicineMatch = medicinePart.match(/^(TAB\.|CAP\.|SYR\.|INJ\.)\s*([A-Z]+)/);
-          if (medicineMatch && medicineMatch[2]) {
-            medicineNames.push(medicineMatch[2]);
+      // Pattern 1: Look for numbered lists (1. Medicine, 2. Medicine, etc.)
+      const numberedPattern = /^\d+\.\s*(.+)/;
+      const numberedMatch = trimmedLine.match(numberedPattern);
+      
+      if (numberedMatch) {
+        const medicineText = numberedMatch[1].trim();
+        console.log(`Found numbered medicine: "${medicineText}"`);
+        
+        // Extract medicine name from various formats
+        const medicinePatterns = [
+          // Pattern: TAB. MEDICINENAME or CAP. MEDICINENAME
+          /(?:TAB\.|CAP\.|SYR\.|INJ\.)\s*([A-Z][A-Z0-9\s]+?)(?:\s+\d+|\s*$)/i,
+          // Pattern: Medicine name at start
+          /^([A-Z][A-Z0-9\s]+?)(?:\s+\d+|\s+mg|\s+ml|\s*$)/i,
+          // Pattern: Any word with 3+ characters
+          /([A-Z][A-Z0-9]{2,})/i
+        ];
+        
+        for (const pattern of medicinePatterns) {
+          const match = medicineText.match(pattern);
+          if (match && match[1]) {
+            const medicineName = match[1].trim().toUpperCase();
+            if (medicineName.length > 2 && !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML'].includes(medicineName)) {
+              medicineNames.push(medicineName);
+              console.log(`Extracted medicine: "${medicineName}"`);
+              break;
+            }
           }
         }
       }
       
-      if (trimmedLine.includes('TAB.') || trimmedLine.includes('CAP.') || trimmedLine.includes('SYR.')) {
-        const medicineMatch = trimmedLine.match(/(TAB\.|CAP\.|SYR\.)\s*([A-Z][A-Z0-9]+)/);
-        if (medicineMatch && medicineMatch[2]) {
-          medicineNames.push(medicineMatch[2]);
+      // Pattern 2: Look for medicine formats without numbers
+      const medicineFormats = [
+        /(?:TAB\.|CAP\.|SYR\.|INJ\.)\s*([A-Z][A-Z0-9\s]+?)(?:\s+\d+|\s*$)/i,
+        /^([A-Z][A-Z0-9\s]{3,})(?:\s+\d+mg|\s+\d+ml|\s*$)/i
+      ];
+      
+      for (const pattern of medicineFormats) {
+        const match = trimmedLine.match(pattern);
+        if (match && match[1]) {
+          const medicineName = match[1].trim().toUpperCase();
+          if (medicineName.length > 2 && !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML', 'MORNING', 'NIGHT', 'FOOD', 'DAYS'].includes(medicineName)) {
+            medicineNames.push(medicineName);
+            console.log(`Extracted medicine (no number): "${medicineName}"`);
+          }
         }
       }
     });
     
-    const filteredNames = [...new Set(medicineNames)].filter(name => 
+    // Remove duplicates and filter
+    const uniqueNames = [...new Set(medicineNames)];
+    const filteredNames = uniqueNames.filter(name => 
       name.length > 2 && 
-      !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML', 'MORNING', 'NIGHT', 'FOOD', 'DAYS'].includes(name)
+      !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML', 'MORNING', 'NIGHT', 'FOOD', 'DAYS', 'BEFORE', 'AFTER'].includes(name)
     );
     
-    return filteredNames.slice(0, 5);
+    console.log('Final extracted medicines:', filteredNames);
+    return filteredNames.slice(0, 8); // Increased limit to 8
   };
 
   const cleanText = (text: string): string => {
@@ -136,7 +173,7 @@ export const useUploadProcessor = () => {
   };
 
   const fetchMedicineInfo = async (medicineName: string): Promise<MedicineInfo> => {
-    console.log(`Fetching info for: ${medicineName}`);
+    console.log(`Fetching comprehensive info for: ${medicineName}`);
     
     try {
       const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyABoWpR4-zZ4OY6hcCpGKZtwHLmchygxAY';
@@ -148,14 +185,15 @@ export const useUploadProcessor = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Provide detailed medical information for the medicine "${medicineName}" in the following exact format:
+              text: `Provide comprehensive medical information for the medicine "${medicineName}" in the following exact format:
 
-Usage: [What this medicine is used for - be specific about conditions it treats]
-Dosage: [Typical dosage information for adults - include frequency and amount]
-Side Effects: [List common side effects]
-Precautions: [Important warnings and precautions]
+Usage: [What this medicine is used for - be specific about conditions, symptoms, and therapeutic purposes]
+Dosage: [Typical adult dosage with frequency, amount, and duration - include pediatric dosage if applicable]
+Side Effects: [List common and serious side effects that patients should be aware of]
+Precautions: [Important warnings, contraindications, and safety measures]
+Alternatives: [List 2-3 alternative medicines of the same therapeutic class with brief descriptions]
 
-Please provide accurate, concise medical information without using asterisks or bold formatting. If the medicine is not found or you're unsure, clearly state that and provide general guidance about consulting healthcare providers.`
+Please provide accurate, detailed medical information without using asterisks, bold formatting, or bullet points. Use clear, concise sentences. If the exact medicine is not found, provide information for the closest match or state clearly that the specific medicine information is not available.`
             }]
           }]
         })
@@ -178,24 +216,28 @@ Please provide accurate, concise medical information without using asterisks or 
             info.sideEffects = cleanText(cleanLine.replace('Side Effects:', '').trim());
           } else if (cleanLine.startsWith('Precautions:')) {
             info.precautions = cleanText(cleanLine.replace('Precautions:', '').trim());
+          } else if (cleanLine.startsWith('Alternatives:')) {
+            info.alternatives = cleanText(cleanLine.replace('Alternatives:', '').trim());
           }
         });
 
         return {
           name: info.name || medicineName,
-          usage: info.usage || 'Information not available',
-          dosage: info.dosage || 'Consult your doctor for proper dosage',
-          sideEffects: info.sideEffects || 'Consult your doctor for side effects',
-          precautions: info.precautions || 'Take as prescribed by your doctor'
+          usage: info.usage || 'Information not available - consult your healthcare provider',
+          dosage: info.dosage || 'Consult your doctor for proper dosage information',
+          sideEffects: info.sideEffects || 'Consult your doctor for comprehensive side effects information',
+          precautions: info.precautions || 'Take only as prescribed by your healthcare provider',
+          alternatives: info.alternatives || 'Consult your doctor for alternative medicine options'
         };
       }
 
       return {
         name: medicineName,
-        usage: 'Unable to fetch medicine information from Gemini',
+        usage: 'Unable to fetch medicine information - please consult your healthcare provider',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
-        precautions: 'Take only as prescribed by your healthcare provider'
+        precautions: 'Take only as prescribed by your healthcare provider',
+        alternatives: 'Consult your doctor for alternative medicine options'
       };
 
     } catch (error) {
@@ -205,7 +247,8 @@ Please provide accurate, concise medical information without using asterisks or 
         usage: 'Unable to fetch medicine information',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
-        precautions: 'Take only as prescribed by your healthcare provider'
+        precautions: 'Take only as prescribed by your healthcare provider',
+        alternatives: 'Consult your doctor for alternative medicine options'
       };
     }
   };
@@ -223,7 +266,7 @@ Please provide accurate, concise medical information without using asterisks or 
       setExtractedText(text);
       console.log('Extracted text:', text);
 
-      setProcessingStep('Identifying medicines...');
+      setProcessingStep('Identifying medicines from prescription...');
       const medicineNames = extractMedicineNames(text);
       console.log('Found medicines:', medicineNames);
 
@@ -237,7 +280,7 @@ Please provide accurate, concise medical information without using asterisks or 
         return;
       }
 
-      setProcessingStep('Fetching medicine information from Gemini AI...');
+      setProcessingStep('Fetching comprehensive medicine information...');
       const medicineInfoPromises = medicineNames.map(name => fetchMedicineInfo(name));
       const results = await Promise.all(medicineInfoPromises);
       
@@ -245,15 +288,15 @@ Please provide accurate, concise medical information without using asterisks or 
       setProcessingStep('Complete!');
 
       toast({
-        title: "Success!",
-        description: `Found information for ${results.length} medicine(s)`,
+        title: "Analysis Complete!",
+        description: `Found comprehensive information for ${results.length} medicine(s)`,
       });
 
     } catch (error) {
       console.error('Error processing image:', error);
       toast({
         title: "Processing failed",
-        description: "Failed to process the prescription. Please try again.",
+        description: "Failed to process the prescription. Please try again with a clearer image.",
         variant: "destructive",
       });
     } finally {
