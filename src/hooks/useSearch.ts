@@ -8,7 +8,6 @@ interface MedicineInfo {
   dosage: string;
   sideEffects: string;
   precautions: string;
-  alternatives: string;
 }
 
 export const useSearch = () => {
@@ -46,7 +45,6 @@ Usage: [What this medicine is used for - be specific about conditions it treats]
 Dosage: [Typical dosage information for adults - include frequency and amount]
 Side Effects: [List common side effects]
 Precautions: [Important warnings and precautions]
-Alternatives: [List 2-3 alternative medicines of the same therapeutic class with brief descriptions]
 
 Please provide accurate, concise medical information without using asterisks or bold formatting. If the medicine is not found or you're unsure, clearly state that and provide general guidance about consulting healthcare providers.`
             }]
@@ -72,8 +70,6 @@ Please provide accurate, concise medical information without using asterisks or 
             info.sideEffects = cleanText(cleanLine.replace('Side Effects:', '').trim());
           } else if (cleanLine.startsWith('Precautions:')) {
             info.precautions = cleanText(cleanLine.replace('Precautions:', '').trim());
-          } else if (cleanLine.startsWith('Alternatives:')) {
-            info.alternatives = cleanText(cleanLine.replace('Alternatives:', '').trim());
           }
         });
 
@@ -82,8 +78,7 @@ Please provide accurate, concise medical information without using asterisks or 
           usage: info.usage || 'Information not available',
           dosage: info.dosage || 'Consult your doctor for proper dosage',
           sideEffects: info.sideEffects || 'Consult your doctor for side effects',
-          precautions: info.precautions || 'Take as prescribed by your doctor',
-          alternatives: info.alternatives || 'Consult your doctor for alternative medicine options'
+          precautions: info.precautions || 'Take as prescribed by your doctor'
         };
       }
 
@@ -93,8 +88,7 @@ Please provide accurate, concise medical information without using asterisks or 
         usage: 'Unable to fetch medicine information from Gemini',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
-        precautions: 'Take only as prescribed by your healthcare provider',
-        alternatives: 'Consult your doctor for alternative medicine options'
+        precautions: 'Take only as prescribed by your healthcare provider'
       };
 
     } catch (error) {
@@ -104,8 +98,7 @@ Please provide accurate, concise medical information without using asterisks or 
         usage: 'Unable to fetch medicine information',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
-        precautions: 'Take only as prescribed by your healthcare provider',
-        alternatives: 'Consult your doctor for alternative medicine options'
+        precautions: 'Take only as prescribed by your healthcare provider'
       };
     }
   };

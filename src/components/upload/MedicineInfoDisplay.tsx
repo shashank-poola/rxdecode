@@ -9,7 +9,6 @@ interface MedicineInfo {
   dosage: string;
   sideEffects: string;
   precautions: string;
-  alternatives: string;
 }
 
 interface MedicineInfoDisplayProps {

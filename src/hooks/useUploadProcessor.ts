@@ -8,7 +8,6 @@ interface MedicineInfo {
   dosage: string;
   sideEffects: string;
   precautions: string;
-  alternatives: string;
 }
 
 export const useUploadProcessor = () => {
@@ -94,86 +93,8 @@ export const useUploadProcessor = () => {
     }
   };
 
-  const extractMedicineNames = (text: string): string[] => {
-    const lines = text.split('\n');
-    const medicineNames: string[] = [];
-    
-    console.log('Analyzing text for medicine names:', text);
-    
-    lines.forEach((line, index) => {
-      const trimmedLine = line.trim();
-      console.log(`Line ${index}: "${trimmedLine}"`);
-      
-      // Pattern 1: Look for numbered lists (1. Medicine, 2. Medicine, etc.)
-      const numberedPattern = /^\d+\.\s*(.+)/;
-      const numberedMatch = trimmedLine.match(numberedPattern);
-      
-      if (numberedMatch) {
-        const medicineText = numberedMatch[1].trim();
-        console.log(`Found numbered medicine: "${medicineText}"`);
-        
-        // Extract medicine name from various formats
-        const medicinePatterns = [
-          // Pattern: TAB. MEDICINENAME or CAP. MEDICINENAME
-          /(?:TAB\.|CAP\.|SYR\.|INJ\.)\s*([A-Z][A-Z0-9\s]+?)(?:\s+\d+|\s*$)/i,
-          // Pattern: Medicine name at start
-          /^([A-Z][A-Z0-9\s]+?)(?:\s+\d+|\s+mg|\s+ml|\s*$)/i,
-          // Pattern: Any word with 3+ characters
-          /([A-Z][A-Z0-9]{2,})/i
-        ];
-        
-        for (const pattern of medicinePatterns) {
-          const match = medicineText.match(pattern);
-          if (match && match[1]) {
-            const medicineName = match[1].trim().toUpperCase();
-            if (medicineName.length > 2 && !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML'].includes(medicineName)) {
-              medicineNames.push(medicineName);
-              console.log(`Extracted medicine: "${medicineName}"`);
-              break;
-            }
-          }
-        }
-      }
-      
-      // Pattern 2: Look for medicine formats without numbers
-      const medicineFormats = [
-        /(?:TAB\.|CAP\.|SYR\.|INJ\.)\s*([A-Z][A-Z0-9\s]+?)(?:\s+\d+|\s*$)/i,
-        /^([A-Z][A-Z0-9\s]{3,})(?:\s+\d+mg|\s+\d+ml|\s*$)/i
-      ];
-      
-      for (const pattern of medicineFormats) {
-        const match = trimmedLine.match(pattern);
-        if (match && match[1]) {
-          const medicineName = match[1].trim().toUpperCase();
-          if (medicineName.length > 2 && !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML', 'MORNING', 'NIGHT', 'FOOD', 'DAYS'].includes(medicineName)) {
-            medicineNames.push(medicineName);
-            console.log(`Extracted medicine (no number): "${medicineName}"`);
-          }
-        }
-      }
-    });
-    
-    // Remove duplicates and filter
-    const uniqueNames = [...new Set(medicineNames)];
-    const filteredNames = uniqueNames.filter(name => 
-      name.length > 2 && 
-      !['TAB', 'CAP', 'SYR', 'INJ', 'MG', 'ML', 'MORNING', 'NIGHT', 'FOOD', 'DAYS', 'BEFORE', 'AFTER'].includes(name)
-    );
-    
-    console.log('Final extracted medicines:', filteredNames);
-    return filteredNames.slice(0, 8); // Increased limit to 8
-  };
-
-  const cleanText = (text: string): string => {
-    return text
-      .replace(/\*\*/g, '')
-      .replace(/\*/g, '')
-      .replace(/#+\s*/g, '')
-      .trim();
-  };
-
-  const fetchMedicineInfo = async (medicineName: string): Promise<MedicineInfo> => {
-    console.log(`Fetching comprehensive info for: ${medicineName}`);
+  const identifyMedicinesFromText = async (text: string): Promise<string[]> => {
+    console.log('Identifying medicines from text:', text);
     
     try {
       const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyABoWpR4-zZ4OY6hcCpGKZtwHLmchygxAY';
@@ -185,13 +106,69 @@ export const useUploadProcessor = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Provide comprehensive medical information for the medicine "${medicineName}" in the following exact format:
+              text: `Analyze the following prescription text and identify ONLY the medicine names. Extract medicine names that appear to be actual pharmaceutical drugs or medications. Ignore dosage instructions, timings, doctor names, patient information, and other non-medicine text.
 
-Usage: [What this medicine is used for - be specific about conditions, symptoms, and therapeutic purposes]
-Dosage: [Typical adult dosage with frequency, amount, and duration - include pediatric dosage if applicable]
-Side Effects: [List common and serious side effects that patients should be aware of]
+Text to analyze:
+"${text}"
+
+Please respond with ONLY the medicine names, one per line, without any additional text, numbers, or formatting. If no medicines are found, respond with "NO_MEDICINES_FOUND".`
+            }]
+          }]
+        })
+      });
+
+      if (geminiResponse.ok) {
+        const geminiResult = await geminiResponse.json();
+        const responseText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        if (responseText.trim() === 'NO_MEDICINES_FOUND') {
+          return [];
+        }
+        
+        const medicines = responseText
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0 && !line.includes(':') && !line.includes('mg') && !line.includes('ml'))
+          .slice(0, 6); // Limit to 6 medicines
+        
+        console.log('Identified medicines:', medicines);
+        return medicines;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error identifying medicines:', error);
+      return [];
+    }
+  };
+
+  const cleanText = (text: string): string => {
+    return text
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/#+\s*/g, '')
+      .trim();
+  };
+
+  const fetchMedicineInfo = async (medicineName: string): Promise<MedicineInfo> => {
+    console.log(`Fetching info for: ${medicineName}`);
+    
+    try {
+      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyABoWpR4-zZ4OY6hcCpGKZtwHLmchygxAY';
+      const geminiResponse = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Provide medical information for the medicine "${medicineName}" in the following exact format:
+
+Usage: [What this medicine is used for - be specific about conditions and therapeutic purposes]
+Dosage: [Typical adult dosage with frequency and amount]
+Side Effects: [List common side effects that patients should be aware of]
 Precautions: [Important warnings, contraindications, and safety measures]
-Alternatives: [List 2-3 alternative medicines of the same therapeutic class with brief descriptions]
 
 Please provide accurate, detailed medical information without using asterisks, bold formatting, or bullet points. Use clear, concise sentences. If the exact medicine is not found, provide information for the closest match or state clearly that the specific medicine information is not available.`
             }]
@@ -216,8 +193,6 @@ Please provide accurate, detailed medical information without using asterisks, b
             info.sideEffects = cleanText(cleanLine.replace('Side Effects:', '').trim());
           } else if (cleanLine.startsWith('Precautions:')) {
             info.precautions = cleanText(cleanLine.replace('Precautions:', '').trim());
-          } else if (cleanLine.startsWith('Alternatives:')) {
-            info.alternatives = cleanText(cleanLine.replace('Alternatives:', '').trim());
           }
         });
 
@@ -226,8 +201,7 @@ Please provide accurate, detailed medical information without using asterisks, b
           usage: info.usage || 'Information not available - consult your healthcare provider',
           dosage: info.dosage || 'Consult your doctor for proper dosage information',
           sideEffects: info.sideEffects || 'Consult your doctor for comprehensive side effects information',
-          precautions: info.precautions || 'Take only as prescribed by your healthcare provider',
-          alternatives: info.alternatives || 'Consult your doctor for alternative medicine options'
+          precautions: info.precautions || 'Take only as prescribed by your healthcare provider'
         };
       }
 
@@ -236,8 +210,7 @@ Please provide accurate, detailed medical information without using asterisks, b
         usage: 'Unable to fetch medicine information - please consult your healthcare provider',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
-        precautions: 'Take only as prescribed by your healthcare provider',
-        alternatives: 'Consult your doctor for alternative medicine options'
+        precautions: 'Take only as prescribed by your healthcare provider'
       };
 
     } catch (error) {
@@ -247,8 +220,7 @@ Please provide accurate, detailed medical information without using asterisks, b
         usage: 'Unable to fetch medicine information',
         dosage: 'Please consult your doctor for proper dosage',
         sideEffects: 'Please consult your doctor for side effects',
-        precautions: 'Take only as prescribed by your healthcare provider',
-        alternatives: 'Consult your doctor for alternative medicine options'
+        precautions: 'Take only as prescribed by your healthcare provider'
       };
     }
   };
@@ -266,9 +238,9 @@ Please provide accurate, detailed medical information without using asterisks, b
       setExtractedText(text);
       console.log('Extracted text:', text);
 
-      setProcessingStep('Identifying medicines from prescription...');
-      const medicineNames = extractMedicineNames(text);
-      console.log('Found medicines:', medicineNames);
+      setProcessingStep('Identifying medicines from text...');
+      const medicineNames = await identifyMedicinesFromText(text);
+      console.log('Identified medicines:', medicineNames);
 
       if (medicineNames.length === 0) {
         toast({
@@ -280,7 +252,7 @@ Please provide accurate, detailed medical information without using asterisks, b
         return;
       }
 
-      setProcessingStep('Fetching comprehensive medicine information...');
+      setProcessingStep('Fetching medicine information...');
       const medicineInfoPromises = medicineNames.map(name => fetchMedicineInfo(name));
       const results = await Promise.all(medicineInfoPromises);
       
@@ -289,7 +261,7 @@ Please provide accurate, detailed medical information without using asterisks, b
 
       toast({
         title: "Analysis Complete!",
-        description: `Found comprehensive information for ${results.length} medicine(s)`,
+        description: `Found information for ${results.length} medicine(s)`,
       });
 
     } catch (error) {
