@@ -35,10 +35,10 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-rxdecode-purple/5 via-transparent to-rxdecode-coral/5"></div>
         <div className="relative max-w-6xl mx-auto text-center">
           <div className="animate-fade-in">
-            <h1 className="text-5xl md:text-7xl font-bold font-bricolage mb-6" style={{ color: '#0000FF' }}>
+            <h1 className="text-5xl md:text-7xl font-bold font-bricolage mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               Medicine Recommendation System
             </h1>
-            <p className="text-xl md:text-2xl mb-4 font-space" style={{ color: '#0000FF' }}>
+            <p className="text-xl md:text-2xl mb-4 font-space bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
               Empowering Informed Healthcare Decisions
             </p>
             <p className="text-lg text-gray-500 mb-8 max-w-3xl mx-auto">
