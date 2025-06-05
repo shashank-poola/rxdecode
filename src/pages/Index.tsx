@@ -31,8 +31,8 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 px-4">
-        <div className="absolute inset-0 bg-gradient-to-r from-rxdecode-purple/10 via-transparent to-rxdecode-coral/10"></div>
+      <section className="relative overflow-hidden py-20 px-4 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="absolute inset-0 bg-gradient-to-r from-rxdecode-purple/5 via-transparent to-rxdecode-coral/5"></div>
         <div className="relative max-w-6xl mx-auto text-center">
           <div className="animate-fade-in">
             <h1 className="text-5xl md:text-7xl font-bold font-bricolage mb-6" style={{ color: '#0000FF' }}>
