@@ -22,6 +22,8 @@ export default {
 			fontFamily: {
 				'bricolage': ['Bricolage Grotesque', 'sans-serif'],
 				'space': ['Space Grotesk', 'sans-serif'],
+				'poppins': ['Poppins', 'sans-serif'],
+				'caveat': ['Caveat', 'cursive'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
