@@ -20,10 +20,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'bricolage': ['Bricolage Grotesque', 'sans-serif'],
+				'helvetica': ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
 				'space': ['Space Grotesk', 'sans-serif'],
-				'poppins': ['Poppins', 'sans-serif'],
-				'caveat': ['Caveat', 'cursive'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
@@ -32,8 +30,8 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#0000FF',
-					foreground: '#ffffff'
+					DEFAULT: 'hsl(var(--primary))',
+					foreground: 'hsl(var(--primary-foreground))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',

@@ -41,6 +41,11 @@ const Login = () => {
     }
   };
 
+  const handleGoogleLogin = () => {
+    // Google OAuth logic will be implemented later with Supabase
+    console.log('Google login clicked - will be implemented with Supabase');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
       <Card className="w-full max-w-md animate-fade-in">
