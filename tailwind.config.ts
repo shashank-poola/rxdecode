@@ -20,8 +20,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'helvetica': ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
-				'space': ['Space Grotesk', 'sans-serif'],
+				'serif': ['Instrument Serif', 'serif'],
+				'sans': ['Graphik', 'Helvetica Neue', 'Arial', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
@@ -67,12 +67,6 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom brand colors - updated to use blue theme
-				'rxdecode-green': '#10b981',
-				'rxdecode-purple': '#0000FF',
-				'rxdecode-coral': '#f472b6',
-				'rxdecode-yellow': '#fbbf24',
-				'rxdecode-blue': '#0000FF',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

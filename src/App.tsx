@@ -8,7 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Upload from "./pages/Upload";
+import Generate from "./pages/Generate";
 import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 import Navbar from "./components/Navbar";
@@ -22,13 +22,13 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="min-h-screen bg-background font-helvetica">
+          <div className="min-h-screen bg-background font-sans">
             <Navbar />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/upload" element={<Upload />} />
+              <Route path="/generate" element={<Generate />} />
               <Route path="/search" element={<Search />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
