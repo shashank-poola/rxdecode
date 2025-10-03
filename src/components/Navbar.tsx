@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, LogOut, Home, Sparkles, Search } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
@@ -23,56 +23,39 @@ const Navbar = () => {
   return (
     <nav className="bg-background border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo - Left */}
-          <Link to="/" className="flex items-center">
-            <img src={logo} alt="Rxdecode" className="h-10" />
+        <div className="flex justify-center items-center h-16 relative">
+          {/* Logo - Left (absolute positioning) */}
+          <Link to="/" className="absolute left-4 flex items-center">
+            <img src={logo} alt="Rxdecode" className="h-8" />
           </Link>
 
           {/* Desktop Navigation - Center */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center gap-12 bg-muted rounded-full px-8 py-2">
             <Link 
               to="/" 
-              className="text-foreground hover:text-primary transition-colors duration-200 font-sans font-medium flex items-center gap-2"
+              className="text-foreground hover:text-primary transition-colors duration-200 font-sans font-medium"
             >
-              <Home className="h-4 w-4" />
               Home
             </Link>
             <Link 
               to="/generate" 
-              className="text-foreground hover:text-primary transition-colors duration-200 font-sans font-medium flex items-center gap-2"
+              className="text-foreground hover:text-primary transition-colors duration-200 font-sans font-medium"
             >
-              <Sparkles className="h-4 w-4" />
               Generate
             </Link>
-            <Link 
-              to="/search" 
-              className="text-foreground hover:text-primary transition-colors duration-200 font-sans font-medium flex items-center gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Search
-            </Link>
-          </div>
-
-          {/* Auth Button - Right */}
-          <div className="hidden md:flex items-center">
             {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-foreground font-sans text-sm">{user?.name}</span>
-                <Button 
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="sm"
-                  className="font-sans"
-                >
-                  <LogOut className="h-4 w-4 mr-1" />
-                  Logout
-                </Button>
-              </div>
+              <Button 
+                onClick={handleLogout}
+                variant="ghost"
+                size="sm"
+                className="font-sans"
+              >
+                Logout
+              </Button>
             ) : (
               <Link to="/login">
                 <Button 
-                  className="bg-gradient-to-t from-[#0700FF] to-[#5661F9] hover:opacity-90 text-white font-sans"
+                  className="bg-gradient-to-t from-[#0700FF] to-[#5661F9] hover:opacity-90 text-white font-sans rounded-full"
                   size="sm"
                 >
                   Login
@@ -82,7 +65,7 @@ const Navbar = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden absolute right-4">
             <Button
               variant="ghost"
               size="sm"
@@ -110,32 +93,21 @@ const Navbar = () => {
             >
               Generate
             </Link>
-            <Link 
-              to="/search" 
-              className="block text-foreground hover:text-primary transition-colors duration-200 font-sans font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Search
-            </Link>
             
             <div className="pt-4 border-t">
               {isAuthenticated ? (
-                <>
-                  <div className="text-foreground font-sans text-sm mb-2">{user?.name}</div>
-                  <Button 
-                    onClick={handleLogout}
-                    variant="outline"
-                    size="sm"
-                    className="w-full font-sans"
-                  >
-                    <LogOut className="h-4 w-4 mr-1" />
-                    Logout
-                  </Button>
-                </>
+                <Button 
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="w-full font-sans"
+                >
+                  Logout
+                </Button>
               ) : (
                 <Link to="/login" className="block" onClick={() => setIsMenuOpen(false)}>
                   <Button 
-                    className="w-full bg-gradient-to-t from-[#0700FF] to-[#5661F9] hover:opacity-90 text-white font-sans"
+                    className="w-full bg-gradient-to-t from-[#0700FF] to-[#5661F9] hover:opacity-90 text-white font-sans rounded-full"
                     size="sm"
                   >
                     Login

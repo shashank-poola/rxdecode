@@ -47,8 +47,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-black">
-      <Card className="w-full max-w-md animate-fade-in bg-card border-border">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-white">
+      <Card className="w-full max-w-md animate-fade-in bg-white border-border">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-serif text-foreground">
             Welcome Back

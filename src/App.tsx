@@ -9,7 +9,6 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Generate from "./pages/Generate";
-import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 import Navbar from "./components/Navbar";
 
@@ -29,7 +28,6 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/generate" element={<Generate />} />
-              <Route path="/search" element={<Search />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
